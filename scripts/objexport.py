@@ -53,6 +53,7 @@ def tools():
     cmds.textScrollList('obj_txscrollList',h=342,ams=True)
     cmds.iconTextButton('obj_add_btn',style="iconOnly",i=u'out_MASH_CreateUtility_200.png',c='add_list_item("obj")')
     cmds.iconTextButton('obj_reduce_btn',style="iconOnly",i=u'TTF_Clear_200.png',c='reduce_list_item("obj")')
+    cmds.iconTextCheckBox('obj_seq_btn',i=u'Dash_SearchFavs_200.png',v=True,si=u'TTF_Fav_200.png')
     cmds.button('obj_export_btn',h=30,l=u'导出')
     cmds.formLayout('main_formlay',e=1,af=[['filepath_txbtn', 'top', 7], ['filepath_txbtn', 'left', 5], ['getcurr_path_txbtn', 'top', 8], 
                                     ['refresh_tool_btn', 'top', 2], ['refresh_tool_btn', 'right', 5], ['curr_exp_typ_radio', 'left', 5], 
@@ -83,10 +84,11 @@ def tools():
                                     ['abc_comb_btn', 'left', 10, 'abc_txscrollList'], ['abc_export_btn', 'top', 5, 'abc_txscrollList']],
                                     ap=[['abc_txscrollList', 'right', 5, 70]])
     cmds.formLayout('obj_formlay',e=1,af=[['obj_txscrollList', 'top', 5], ['obj_txscrollList', 'left', 5], ['obj_add_btn', 'top', 50], 
-                                    ['obj_add_btn', 'right', 30], ['obj_reduce_btn', 'right', 30], ['obj_export_btn', 'left', 5], 
-                                    ['obj_export_btn', 'right', 5]],
-                                    ac=[['obj_add_btn', 'left', 10, 'obj_txscrollList'], ['obj_reduce_btn', 'top', 80, 'obj_add_btn'], 
-                                    ['obj_reduce_btn', 'left', 2, 'obj_txscrollList'], ['obj_export_btn', 'top', 5, 'obj_txscrollList']],
+                                    ['obj_add_btn', 'right', 30], ['obj_reduce_btn', 'right', 30], ['obj_seq_btn', 'right', 30], 
+                                    ['obj_export_btn', 'left', 5], ['obj_export_btn', 'right', 5]],
+                                    ac=[['obj_add_btn', 'left', 5, 'obj_txscrollList'], ['obj_reduce_btn', 'top', 50, 'obj_add_btn'], 
+                                    ['obj_reduce_btn', 'left', 2, 'obj_txscrollList'], ['obj_seq_btn', 'top', 50, 'obj_reduce_btn'], 
+                                    ['obj_seq_btn', 'left', 10, 'obj_txscrollList'], ['obj_export_btn', 'top', 5, 'obj_txscrollList']],
                                     ap=[['obj_txscrollList', 'right', 5, 70]])
     cmds.showWindow('exp_win')
     cmds.window('exp_win',e=True,h=525)
@@ -280,10 +282,10 @@ def abc_obj_export(abcobj_v):
                     obj_command = ('-root %s' % item)
                     abc_command(startFrame,endFrame,obj_command,save_name)
             
-
 def abc_command(start,end,obj,save_name):
     command = "-frameRange " + str(start) + " " + str(end) +" -attr Translate -uvWrite -writeVisibility -dataFormat ogawa " + obj + " -file " + save_name #-root 
     print (command)
     cmds.AbcExport ( j = command )
+
 tools()
 default_folder()
