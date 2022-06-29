@@ -281,6 +281,10 @@ def abc_obj_export(abcobj_v):
                     save_name = "%s_%s%s" % (filename[0],item_sort,filename[1])
                     obj_command = ('-root %s' % item)
                     abc_command(startFrame,endFrame,obj_command,save_name)
+        
+        if abcobj_v == 'obj':
+            if cmds.iconTextCheckBox('obj_seq_btn',q=True,v=True):
+                pass
             
 def abc_command(start,end,obj,save_name):
     command = "-frameRange " + str(start) + " " + str(end) +" -attr Translate -uvWrite -writeVisibility -dataFormat ogawa " + obj + " -file " + save_name #-root 
