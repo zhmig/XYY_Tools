@@ -41,17 +41,18 @@ def tools():
                                     cc=u'cmds.frameLayout("obj_framelay",e=True,cl=False)',
                                     ec=u'cmds.frameLayout("fbx_framelay",e=True,cl=True);\ncmds.frameLayout("obj_framelay",e=True,cl=True)')
     cmds.formLayout('abc_formlay')
-    cmds.textScrollList('abc_txscrollList',h=342)
-    cmds.iconTextButton('abc_add_btn',style="iconOnly",i=u'out_MASH_CreateUtility_200.png')
-    cmds.iconTextButton('abc_reduce_btn',style="iconOnly",i=u'TTF_Clear_200.png')
-    cmds.button('abc_export_btn',h=30,l=u'导出')
+    cmds.textScrollList('abc_txscrollList',h=342,ams=True)
+    cmds.iconTextButton('abc_add_btn',style="iconOnly",i=u'out_MASH_CreateUtility_200.png',c='add_list_item("abc")')
+    cmds.iconTextButton('abc_reduce_btn',style="iconOnly",i=u'TTF_Clear_200.png',c='reduce_list_item("abc")')
+    cmds.iconTextCheckBox('abc_comb_btn',i=u'MASH_InvertOn_200.png',si=u'out_MASH_Enable_Selected_200.png')
+    cmds.button('abc_export_btn',h=30,l=u'导出',c='abc_obj_export("abc")')
     cmds.frameLayout('obj_framelay',p='main_formlay',cl=True,cll=True,l=u'Obj导出',
                                     cc=u'cmds.frameLayout("fbx_framelay",e=True,cl=False)',
                                     ec=u'cmds.frameLayout("fbx_framelay",e=True,cl=True);\ncmds.frameLayout("abc_framelay",e=True,cl=True)')
     cmds.formLayout('obj_formlay')
-    cmds.textScrollList('obj_txscrollList',h=342)
-    cmds.iconTextButton('obj_add_btn',style="iconOnly",i=u'out_MASH_CreateUtility_200.png')
-    cmds.iconTextButton('obj_reduce_btn',style="iconOnly",i=u'TTF_Clear_200.png')
+    cmds.textScrollList('obj_txscrollList',h=342,ams=True)
+    cmds.iconTextButton('obj_add_btn',style="iconOnly",i=u'out_MASH_CreateUtility_200.png',c='add_list_item("obj")')
+    cmds.iconTextButton('obj_reduce_btn',style="iconOnly",i=u'TTF_Clear_200.png',c='reduce_list_item("obj")')
     cmds.button('obj_export_btn',h=30,l=u'导出')
     cmds.formLayout('main_formlay',e=1,af=[['filepath_txbtn', 'top', 7], ['filepath_txbtn', 'left', 5], ['getcurr_path_txbtn', 'top', 8], 
                                     ['refresh_tool_btn', 'top', 2], ['refresh_tool_btn', 'right', 5], ['curr_exp_typ_radio', 'left', 5], 
@@ -75,10 +76,11 @@ def tools():
                                     ap=[['pl_txscrollList', 'right', 5, 90], ['pl_add_btn', 'left', 5, 90], ['pl_reduce_btn', 'left', 5, 90], 
                                     ['pl_refresh_btn', 'left', 3, 90]])
     cmds.formLayout('abc_formlay',e=1,af=[['abc_txscrollList', 'top', 5], ['abc_txscrollList', 'left', 5], ['abc_add_btn', 'top', 50], 
-                                    ['abc_add_btn', 'right', 30], ['abc_reduce_btn', 'right', 30], ['abc_export_btn', 'left', 5], 
-                                    ['abc_export_btn', 'right', 5], ['abc_export_btn', 'bottom', 0]],
-                                    ac=[['abc_add_btn', 'left', 10, 'abc_txscrollList'], ['abc_reduce_btn', 'top', 80, 'abc_add_btn'], 
-                                    ['abc_reduce_btn', 'left', 2, 'abc_txscrollList'], ['abc_export_btn', 'top', 5, 'abc_txscrollList']],
+                                    ['abc_add_btn', 'right', 30], ['abc_reduce_btn', 'right', 30], ['abc_comb_btn', 'right', 30], 
+                                    ['abc_export_btn', 'left', 5], ['abc_export_btn', 'right', 5], ['abc_export_btn', 'bottom', 0]],
+                                    ac=[['abc_add_btn', 'left', 5, 'abc_txscrollList'], ['abc_reduce_btn', 'top', 50, 'abc_add_btn'], 
+                                    ['abc_reduce_btn', 'left', 2, 'abc_txscrollList'], ['abc_comb_btn', 'top', 50, 'abc_reduce_btn'], 
+                                    ['abc_comb_btn', 'left', 10, 'abc_txscrollList'], ['abc_export_btn', 'top', 5, 'abc_txscrollList']],
                                     ap=[['abc_txscrollList', 'right', 5, 70]])
     cmds.formLayout('obj_formlay',e=1,af=[['obj_txscrollList', 'top', 5], ['obj_txscrollList', 'left', 5], ['obj_add_btn', 'top', 50], 
                                     ['obj_add_btn', 'right', 30], ['obj_reduce_btn', 'right', 30], ['obj_export_btn', 'left', 5], 
@@ -116,7 +118,12 @@ def refresh_tools():
     default_folder()
     cmds.textFieldButtonGrp('filepath_txbtn',e=True,tx='')
     for i in ['cam','loc','pl']:
+        if cmds.textScrollList('%s_txscrollList'%(i),q=True,ai=True):
+            cmds.delete(cmds.textScrollList('%s_txscrollList'%(i),q=True,ai=True))
         cmds.textScrollList('%s_txscrollList'%(i),e=True,ra=True)
+
+    cmds.textScrollList('abc_txscrollList',e=True,ra=True)
+    cmds.textScrollList('obj_txscrollList',e=True,ra=True)
 
 def refresh_slist(refresh_v):
     # cmds.textScrollList('%s_txscrollList'%(refresh_v),q=True,ai=True)
@@ -131,27 +138,36 @@ def refresh_slist(refresh_v):
 
 def add_list_item(add_v):
     selectObj = cmds.ls(sl=True)
-    grp_dn_obj = cmds.listRelatives(('exp_%s_grp' % add_v),ad=True,typ='transform')
-    if grp_dn_obj:
-        add_name = ('%s_%s'% (add_v, str(len(grp_dn_obj)+1)))
-    else:
-        add_name = ('%s_1'% (add_v))
-    if add_v == 'cam':
-        obj_typ = 'camera'
-        # cmds.camera(n=add_name)
-    if add_v == 'loc':
-        obj_typ = 'spaceLocator'
-        # cmds.spaceLocator(n=add_name)
-    if add_v == 'pl':
-        obj_typ = 'pointLight' 
-        # cmds.pointLight(n=add_name)
+    if add_v in ['cam','loc','pl']:
+        grp_dn_obj = cmds.listRelatives(('exp_%s_grp' % add_v),ad=True,typ='transform')
+        if grp_dn_obj:
+            add_name = ('%s_%s'% (add_v, str(len(grp_dn_obj)+1)))
+        else:
+            add_name = ('%s_1'% (add_v))
+        if add_v == 'cam':
+            obj_typ = 'camera'
+            # cmds.camera(n=add_name)
+        if add_v == 'loc':
+            obj_typ = 'spaceLocator'
+            # cmds.spaceLocator(n=add_name)
+        if add_v == 'pl':
+            obj_typ = 'pointLight' 
+            # cmds.pointLight(n=add_name)
 
-    mel.eval('%s -n \"%s\"'%(obj_typ,add_name))
-    if selectObj:
-        parentNode = cmds.parentConstraint(selectObj[0],add_name,w=1,mo=False)
-        cmds.parent(parentNode,'OtherConstraintSystem')
-    cmds.parent(add_name,('exp_%s_grp' % add_v))
-    cmds.textScrollList('%s_txscrollList'%(add_v),e=True,a=add_name)
+        mel.eval('%s -n \"%s\"'%(obj_typ,add_name))
+        if selectObj:
+            parentNode = cmds.parentConstraint(selectObj[0],add_name,w=1,mo=False)
+            if not cmds.objExists('OtherConstraintSystem'):
+                cmds.group(n='OtherConstraintSystem',em=True,p='exp_master')
+            cmds.parent(parentNode,'OtherConstraintSystem')
+        cmds.parent(add_name,('exp_%s_grp' % add_v))
+        cmds.textScrollList('%s_txscrollList'%(add_v),e=True,a=add_name)
+    else:
+        if selectObj:
+            for obj in selectObj:
+                cmds.textScrollList('%s_txscrollList'%(add_v),e=True,a=cmds.ls(obj,l=True))
+        else:
+            cmds.confirmDialog( t=u'警告', m=u'没有选择任何物体或者组！！',icn='warning', b=['Yes'], db='Yes', ds='No' )
 
 def reduce_list_item(reduce_v):
     sels_v = cmds.textScrollList('%s_txscrollList'%(reduce_v),q=True,sii=True)
@@ -162,7 +178,8 @@ def reduce_list_item(reduce_v):
         sels_n.reverse()
         for s in range(len(sels_v)):
             cmds.textScrollList('%s_txscrollList'%(reduce_v),e=True,rii=sels_v[s])
-            cmds.delete(sels_n[s])
+            if reduce_v in ['cam','loc','pl']:
+                cmds.delete(sels_n[s])
 
 def default_folder():
     if not cmds.objExists('exp_master'):
@@ -239,5 +256,34 @@ def fbx_export():
 
         cmds.confirmDialog( t=u'警告', m=u'导出完成，请查看！！！',icn='information', b=['Yes'], db='Yes', ds='No' )
 
+def abc_obj_export(abcobj_v):
+    SaveFilePath = cmds.textFieldButtonGrp('filepath_txbtn', q=True, tx=True)
+    startFrame = cmds.playbackOptions(q=True,min=True)
+    endFrame = cmds.playbackOptions(q=True,max=True)
+    if not SaveFilePath:
+        cmds.confirmDialog( t=u'警告', m=u'填写保存路径！！',icn='warning', b=['Yes'], db='Yes', ds='No' )
+    else:
+        allitems = cmds.textScrollList('%s_txscrollList'%(abcobj_v),q=True,ai=True)
+        if abcobj_v == 'abc':
+            obj_command = ''
+            if cmds.iconTextCheckBox('abc_comb_btn',q=True,v=True):
+                for item in allitems:
+                    obj_command += ('-root %s '% item)
+                abc_command(startFrame,endFrame,obj_command,SaveFilePath)
+            else:
+                pass
+                for item in allitems:
+                    save_name = SaveFilePath
+                    item_sort = item.split('|')[-1]
+                    filename= os.path.splitext(SaveFilePath)
+                    save_name = "%s_%s%s" % (filename[0],item_sort,filename[1])
+                    obj_command = ('-root %s' % item)
+                    abc_command(startFrame,endFrame,obj_command,save_name)
+            
+
+def abc_command(start,end,obj,save_name):
+    command = "-frameRange " + str(start) + " " + str(end) +" -attr Translate -uvWrite -writeVisibility -dataFormat ogawa " + obj + " -file " + save_name #-root 
+    print (command)
+    cmds.AbcExport ( j = command )
 tools()
 default_folder()
