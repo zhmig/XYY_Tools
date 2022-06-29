@@ -42,19 +42,29 @@ def tools():
                                     ec=u'cmds.frameLayout("fbx_framelay",e=True,cl=True);\ncmds.frameLayout("obj_framelay",e=True,cl=True)')
     cmds.formLayout('abc_formlay')
     cmds.textScrollList('abc_txscrollList',h=342,ams=True)
-    cmds.iconTextButton('abc_add_btn',style="iconOnly",i=u'out_MASH_CreateUtility_200.png',c='add_list_item("abc")')
-    cmds.iconTextButton('abc_reduce_btn',style="iconOnly",i=u'TTF_Clear_200.png',c='reduce_list_item("abc")')
-    cmds.iconTextCheckBox('abc_comb_btn',i=u'MASH_InvertOn_200.png',si=u'out_MASH_Enable_Selected_200.png')
+    cmds.iconTextButton('abc_add_btn',l=u'新增条目',st='iconAndTextHorizontal',fn='fixedWidthFont',
+                                        i=u'out_MASH_CreateUtility_200.png',c='add_list_item("abc")')
+    cmds.iconTextButton('abc_reduce_btn',l=u'删除条目',st='iconAndTextHorizontal',fn='fixedWidthFont',
+                                        i=u'TTF_Clear_200.png',c='reduce_list_item("abc")')
+    cmds.iconTextCheckBox('abc_comb_btn',l=u'开启合并',st='iconAndTextHorizontal',fn='fixedWidthFont',v=True,
+                                        i=u'MASH_InvertOn_200.png',si=u'out_MASH_Enable_Selected_200.png',
+                                        onc=u"cmds.iconTextCheckBox('abc_comb_btn',e=True,l=u'开启合并')",
+                                        ofc=u"cmds.iconTextCheckBox('abc_comb_btn',e=True,l=u'关闭合并')")
     cmds.button('abc_export_btn',h=30,l=u'导出',c='abc_obj_export("abc")')
     cmds.frameLayout('obj_framelay',p='main_formlay',cl=True,cll=True,l=u'Obj导出',
                                     cc=u'cmds.frameLayout("fbx_framelay",e=True,cl=False)',
                                     ec=u'cmds.frameLayout("fbx_framelay",e=True,cl=True);\ncmds.frameLayout("abc_framelay",e=True,cl=True)')
     cmds.formLayout('obj_formlay')
     cmds.textScrollList('obj_txscrollList',h=342,ams=True)
-    cmds.iconTextButton('obj_add_btn',style="iconOnly",i=u'out_MASH_CreateUtility_200.png',c='add_list_item("obj")')
-    cmds.iconTextButton('obj_reduce_btn',style="iconOnly",i=u'TTF_Clear_200.png',c='reduce_list_item("obj")')
-    cmds.iconTextCheckBox('obj_seq_btn',i=u'Dash_SearchFavs_200.png',v=True,si=u'TTF_Fav_200.png')
-    cmds.button('obj_export_btn',h=30,l=u'导出')
+    cmds.iconTextButton('obj_add_btn',l=u'新增条目',st='iconAndTextHorizontal',fn='fixedWidthFont',
+                                        i=u'out_MASH_CreateUtility_200.png',c='add_list_item("obj")')
+    cmds.iconTextButton('obj_reduce_btn',l=u'删除条目',st='iconAndTextHorizontal',fn='fixedWidthFont',
+                                        i=u'TTF_Clear_200.png',c='reduce_list_item("obj")')
+    cmds.iconTextCheckBox('obj_seq_btn',i=u'out_MASH_Disable_200.png',l=u'开启序列',st='iconAndTextHorizontal',
+                                        fn='fixedWidthFont',v=True,si=u'out_MASH_Enable_Selected_200.png',
+                                        onc=u"cmds.iconTextCheckBox('obj_seq_btn',e=True,l=u'\u5f00\u542f\u5e8f\u5217')",
+                                        ofc=u"cmds.iconTextCheckBox('obj_seq_btn',e=True,l=u'\u5173\u95ed\u5e8f\u5217')")
+    cmds.button('obj_export_btn',h=30,l=u'导出',c='abc_obj_export("obj")')
     cmds.formLayout('main_formlay',e=1,af=[['filepath_txbtn', 'top', 7], ['filepath_txbtn', 'left', 5], ['getcurr_path_txbtn', 'top', 8], 
                                     ['refresh_tool_btn', 'top', 2], ['refresh_tool_btn', 'right', 5], ['curr_exp_typ_radio', 'left', 5], 
                                     ['curr_exp_typ_radio', 'right', 5], ['fbx_framelay', 'left', 5], ['fbx_framelay', 'right', 5], 
@@ -273,7 +283,6 @@ def abc_obj_export(abcobj_v):
                     obj_command += ('-root %s '% item)
                 abc_command(startFrame,endFrame,obj_command,SaveFilePath)
             else:
-                pass
                 for item in allitems:
                     save_name = SaveFilePath
                     item_sort = item.split('|')[-1]
@@ -284,7 +293,34 @@ def abc_obj_export(abcobj_v):
         
         if abcobj_v == 'obj':
             if cmds.iconTextCheckBox('obj_seq_btn',q=True,v=True):
-                pass
+                for item in allitems:
+                    cmds.select(cl=True)
+                    item_sort = item.split('|')[-1]
+                    if cmds.listRelatives(item,ad=True):
+                        item = cmds.listRelatives(item,ad=True)
+                    cmds.select(item,add=True)
+                    for curr_frame in range(int(startFrame),int(endFrame)+1):
+                        save_name = '%s_%s_%04d%s'%(os.path.splitext(SaveFilePath)[0],
+                                                    item_sort,
+                                                    curr_frame,
+                                                    os.path.splitext(SaveFilePath)[1])
+                        cmds.currentTime(curr_frame)
+                        print ('%s_%04d'%(item_sort,curr_frame))
+                        cmds.file(save_name,pr=1,typ="OBJexport",es=1,op="groups=1; ptgroups=1;materials=1; smoothing=1; normals=1")
+            else:
+                for item in allitems:
+                    cmds.select(cl=True)
+                    item_sort = item.split('|')[-1]
+                    if cmds.listRelatives(item,ad=True):
+                        item = cmds.listRelatives(item,ad=True)
+                    cmds.select(item,add=True)
+                    cmds.currentTime(q=True)
+                    save_name = '%s_%s_%04d%s'%(os.path.splitext(SaveFilePath)[0],
+                                                item_sort,
+                                                cmds.currentTime(q=True),
+                                                os.path.splitext(SaveFilePath)[1])
+                    cmds.file(save_name,pr=1,typ="OBJexport",es=1,op="groups=1; ptgroups=1;materials=1; smoothing=1; normals=1")
+            # mc.file(path,pr=1,typ="OBJexport",es=1,op="groups=0; ptgroups=0;materials=0; smoothing=0; normals=0")
             
 def abc_command(start,end,obj,save_name):
     command = "-frameRange " + str(start) + " " + str(end) +" -attr Translate -uvWrite -writeVisibility -dataFormat ogawa " + obj + " -file " + save_name #-root 
