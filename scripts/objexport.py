@@ -3,14 +3,25 @@ import maya.cmds as cmds
 import maya.mel as mel
 import pymel.core as pm
 import os,sys
+from functools import partial
+
+def load_plugin(plugin_name):
+    '''
+    '''
+    if not cmds.pluginInfo(plugin_name, q=True, l=True):
+        try:
+            cmds.loadPlugin(plugin_name)
+        except:
+            pass
 
 def tools():
     if(cmds.window('exp_win',q=True,ex=True)):cmds.deleteUI('exp_win')
     cmds.window('exp_win',t=u'导出工具',s=False,wh=(420, 525))
     cmds.formLayout('main_formlay')
-    cmds.textFieldButtonGrp('filepath_txbtn',cw=[[1, 60]],cal=[[1, u'left']],adj=2,l=u'存放路径：',bl=u' <<< ',bc='get_fbx_file("g_path")')
+    cmds.textFieldButtonGrp('filepath_txbtn',cw=[[1, 60]],cal=[[1, u'left']],adj=2,l=u'存放路径：',bl=u' <<< ',
+                                            bc='get_fbx_file("g_path")')
     cmds.button('getcurr_path_txbtn',l=u'M',c='get_fbx_file("g_currentfile")')
-    cmds.iconTextButton('refresh_tool_btn',i=u'MASH_SwitchGeometryType.png',mw=5,mh=5,c='refresh_tools()')
+    cmds.iconTextButton('refresh_tool_btn',i=u'MASH_SwitchGeometryType.png',mw=5,mh=5,c="refresh_tools()")
     cmds.radioButtonGrp('curr_exp_typ_radio',cw=[[1, 80]],cal=[[1, u'left']],nrb=3,sl=1,l=u'导出类型',l1=u'FBX',l2=u'ABC',l3=u'OBJ')
     cmds.frameLayout('fbx_framelay',cll=True,l=u'Fbx导出',
                                     cc=u'cmds.frameLayout("abc_framelay",e=True,cl=False)',
@@ -18,23 +29,23 @@ def tools():
     cmds.tabLayout('cam_tablay',h=110,cr=True)
     cmds.formLayout('cam_formlay')
     cmds.textScrollList('cam_txscrollList',ams=True)
-    cmds.iconTextButton('cam_add_btn',i=u'setEdAddCmd.png',c='add_list_item("cam")')
-    cmds.iconTextButton('cam_reduce_btn',i=u'setEdRemoveCmd.png',c='reduce_list_item("cam")')
-    cmds.iconTextButton('cam_refresh_btn',i=u'TTF_Refresh_150.png',c='refresh_slist("cam")')
+    cmds.iconTextButton('cam_add_btn',i=u'setEdAddCmd.png',c=partial(add_list_item,"cam"))
+    cmds.iconTextButton('cam_reduce_btn',i=u'setEdRemoveCmd.png',c=partial(reduce_list_item,"cam"))
+    cmds.iconTextButton('cam_refresh_btn',i=u'TTF_Refresh_150.png',c=partial(refresh_slist,"cam"))
     cmds.tabLayout('cam_tablay',e=True,tli=(1,u'Camera 选项卡'))
     cmds.tabLayout('loc_tablay',p='fbx_framelay',h=110,tv=True,scr=False,cr=True)
     cmds.formLayout('loc_formlay')
     cmds.textScrollList('loc_txscrollList',ams=True)
-    cmds.iconTextButton('loc_add_btn',i=u'setEdAddCmd.png',c='add_list_item("loc")')
-    cmds.iconTextButton('loc_reduce_btn',i=u'setEdRemoveCmd.png',c='reduce_list_item("loc")')
-    cmds.iconTextButton('loc_refresh_btn',i=u'TTF_Refresh_150.png',c='refresh_slist("loc")')
+    cmds.iconTextButton('loc_add_btn',i=u'setEdAddCmd.png',c=partial(add_list_item,"loc"))
+    cmds.iconTextButton('loc_reduce_btn',i=u'setEdRemoveCmd.png',c=partial(reduce_list_item,"loc"))
+    cmds.iconTextButton('loc_refresh_btn',i=u'TTF_Refresh_150.png',c=partial(refresh_slist,"loc"))
     cmds.tabLayout('loc_tablay',e=True,tli=(1,u'Locator 选项卡'))
     cmds.tabLayout('pl_tablay',p='fbx_framelay',h=110,cr=True)
     cmds.formLayout('pl_formlay')
     cmds.textScrollList('pl_txscrollList',ams=True)
-    cmds.iconTextButton('pl_add_btn',i=u'setEdAddCmd.png',c='add_list_item("pl")')
-    cmds.iconTextButton('pl_reduce_btn',i=u'setEdRemoveCmd.png',c='reduce_list_item("pl")')
-    cmds.iconTextButton('pl_refresh_btn',i=u'TTF_Refresh_150.png',c='refresh_slist("pl")')
+    cmds.iconTextButton('pl_add_btn',i=u'setEdAddCmd.png',c=partial(add_list_item,"pl"))
+    cmds.iconTextButton('pl_reduce_btn',i=u'setEdRemoveCmd.png',c=partial(reduce_list_item,"pl"))
+    cmds.iconTextButton('pl_refresh_btn',i=u'TTF_Refresh_150.png',c=partial(refresh_slist,"pl"))
     cmds.tabLayout('pl_tablay',e=True,tli=(1,u'PointLight 选项卡'))
     cmds.button('fbx_export_btn',p='fbx_framelay',h=30,l=u'导出',c='fbx_export()')
     cmds.frameLayout('abc_framelay',p='main_formlay',cl=True,cll=True,l=u'Abc导出',
@@ -43,9 +54,9 @@ def tools():
     cmds.formLayout('abc_formlay')
     cmds.textScrollList('abc_txscrollList',h=342,ams=True)
     cmds.iconTextButton('abc_add_btn',l=u'新增条目',st='iconAndTextHorizontal',fn='fixedWidthFont',
-                                        i=u'out_MASH_CreateUtility_200.png',c='add_list_item("abc")')
+                                        i=u'out_MASH_CreateUtility_200.png',c=partial(add_list_item,"abc"))
     cmds.iconTextButton('abc_reduce_btn',l=u'删除条目',st='iconAndTextHorizontal',fn='fixedWidthFont',
-                                        i=u'TTF_Clear_200.png',c='reduce_list_item("abc")')
+                                        i=u'TTF_Clear_200.png',c=partial(reduce_list_item,"abc"))
     cmds.iconTextCheckBox('abc_comb_btn',l=u'开启合并',st='iconAndTextHorizontal',fn='fixedWidthFont',v=True,
                                         i=u'MASH_InvertOn_200.png',si=u'out_MASH_Enable_Selected_200.png',
                                         onc=u"cmds.iconTextCheckBox('abc_comb_btn',e=True,l=u'开启合并')",
@@ -57,13 +68,13 @@ def tools():
     cmds.formLayout('obj_formlay')
     cmds.textScrollList('obj_txscrollList',h=342,ams=True)
     cmds.iconTextButton('obj_add_btn',l=u'新增条目',st='iconAndTextHorizontal',fn='fixedWidthFont',
-                                        i=u'out_MASH_CreateUtility_200.png',c='add_list_item("obj")')
+                                        i=u'out_MASH_CreateUtility_200.png',c=partial(add_list_item,"obj"))
     cmds.iconTextButton('obj_reduce_btn',l=u'删除条目',st='iconAndTextHorizontal',fn='fixedWidthFont',
-                                        i=u'TTF_Clear_200.png',c='reduce_list_item("obj")')
+                                        i=u'TTF_Clear_200.png',c=partial(reduce_list_item,"obj"))
     cmds.iconTextCheckBox('obj_seq_btn',i=u'out_MASH_Disable_200.png',l=u'开启序列',st='iconAndTextHorizontal',
                                         fn='fixedWidthFont',v=True,si=u'out_MASH_Enable_Selected_200.png',
-                                        onc=u"cmds.iconTextCheckBox('obj_seq_btn',e=True,l=u'\u5f00\u542f\u5e8f\u5217')",
-                                        ofc=u"cmds.iconTextCheckBox('obj_seq_btn',e=True,l=u'\u5173\u95ed\u5e8f\u5217')")
+                                        onc=u"cmds.iconTextCheckBox('obj_seq_btn',e=True,l=u'开启序列')",
+                                        ofc=u"cmds.iconTextCheckBox('obj_seq_btn',e=True,l=u'关闭序列')")
     cmds.button('obj_export_btn',h=30,l=u'导出',c='abc_obj_export("obj")')
     cmds.formLayout('main_formlay',e=1,af=[['filepath_txbtn', 'top', 7], ['filepath_txbtn', 'left', 5], ['getcurr_path_txbtn', 'top', 8], 
                                     ['refresh_tool_btn', 'top', 2], ['refresh_tool_btn', 'right', 5], ['curr_exp_typ_radio', 'left', 5], 
@@ -109,7 +120,7 @@ def get_fbx_file(fbx_path_v):
         # multiple_maya_Filters = "Maya Files (*.ma *.mb);;Maya ASCII (*.ma);;Maya Binary (*.mb);;All Files (*.*)"
         multiple_maya_Filters = "FBX (*.fbx);;Obj (*.obj);;Alembic (*.abc)"
         get_file_path = cmds.fileDialog2(ff=multiple_maya_Filters, ds=1, fm=0)[0]# cmds.fileDialog2(ff=multiple_maya_Filters, ds=1, fm=1)[0]
-    if fbx_path_v == 'g_currentfile':
+    elif fbx_path_v == 'g_currentfile':
         obj_typ = ''
         typ_sel = cmds.radioButtonGrp('curr_exp_typ_radio', q=True, sl=True)
         if typ_sel == 1:
@@ -130,8 +141,8 @@ def refresh_tools():
     default_folder()
     cmds.textFieldButtonGrp('filepath_txbtn',e=True,tx='')
     for i in ['cam','loc','pl']:
-        if cmds.textScrollList('%s_txscrollList'%(i),q=True,ai=True):
-            cmds.delete(cmds.textScrollList('%s_txscrollList'%(i),q=True,ai=True))
+        # if cmds.textScrollList('%s_txscrollList'%(i),q=True,ai=True):
+        #     cmds.delete(cmds.textScrollList('%s_txscrollList'%(i),q=True,ai=True))
         cmds.textScrollList('%s_txscrollList'%(i),e=True,ra=True)
 
     cmds.textScrollList('abc_txscrollList',e=True,ra=True)
@@ -326,6 +337,10 @@ def abc_command(start,end,obj,save_name):
     command = "-frameRange " + str(start) + " " + str(end) +" -attr Translate -uvWrite -writeVisibility -dataFormat ogawa " + obj + " -file " + save_name #-root 
     print (command)
     cmds.AbcExport ( j = command )
+
+load_plugin('fbxmaya.mll')
+load_plugin('AbcExport.mll')
+load_plugin('objExport.mll')
 
 tools()
 default_folder()
