@@ -297,6 +297,8 @@ def abc_obj_export(abcobj_v):
                 for item in allitems:
                     save_name = SaveFilePath
                     item_sort = item.split('|')[-1]
+                    if item_sort.split(":"):
+                        item_sort = item_sort.split(":")[1]
                     filename= os.path.splitext(SaveFilePath)
                     save_name = "%s_%s%s" % (filename[0],item_sort,filename[1])
                     obj_command = ('-root %s' % item)
@@ -307,6 +309,8 @@ def abc_obj_export(abcobj_v):
                 for item in allitems:
                     cmds.select(cl=True)
                     item_sort = item.split('|')[-1]
+                    if item_sort.split(":"):
+                        item_sort = item_sort.split(":")[1]
                     if cmds.listRelatives(item,ad=True):
                         item = cmds.listRelatives(item,ad=True)
                     cmds.select(item,add=True)
@@ -322,6 +326,8 @@ def abc_obj_export(abcobj_v):
                 for item in allitems:
                     cmds.select(cl=True)
                     item_sort = item.split('|')[-1]
+                    if item_sort.split(":"):
+                        item_sort = item_sort.split(":")[1]
                     if cmds.listRelatives(item,ad=True):
                         item = cmds.listRelatives(item,ad=True)
                     cmds.select(item,add=True)
