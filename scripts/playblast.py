@@ -28,7 +28,7 @@ import pymel.core as pm
 import maya.cmds as cmds
 import maya.mel as mel
 
-ddhud_path = r'\\172.22.5.10\software\XYYScript'
+ddhud_path = r'\\172.22.5.10\software\XYYScript'# r'Z:\Project\ScriptProjs\XYY\playblast\playblast'
 
 class PlayblastCustomPresets(object):
 
@@ -385,7 +385,7 @@ class ShotMask(object):
         # 获取帧数率
         if cmds.objExists('fps'):
             cmds.setAttr('fps_hud.text',
-            ('%s%s'% (cmds.getAttr('fps.text').split(":")[0],cls.getFrameRate())),
+            ('%s:%s'% (cmds.getAttr('fps.text').split(":")[0],cls.getFrameRate())),
             type='string')
 
 class Playblast(QObject):
@@ -947,11 +947,98 @@ class Playblast(QObject):
 
         self.output_logged.emit(text)  # pylint: disable=E1101
 
+class PlayblastEncoderSettingsDialog(QDialog):
+
+    ENCODER_PAGES = {
+        "h264": 0,
+    }
+
+    H264_QUALITIES = [
+        "Very High",
+        "High",
+        "Medium",
+        "Low",
+    ]
+
+
+    def __init__(self, parent):
+        super(PlayblastEncoderSettingsDialog, self).__init__(parent)
+
+        self.setWindowTitle("Encoder Settings")
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        self.setModal(True)
+        self.setMinimumWidth(220)
+
+        self.create_widgets()
+        self.create_layouts()
+        self.create_connections()
+
+    def create_widgets(self):
+        # h264
+        self.h264_quality_combo = QComboBox()
+        self.h264_quality_combo.addItems(PlayblastEncoderSettingsDialog.H264_QUALITIES)
+
+        self.h264_preset_combo = QComboBox()
+        self.h264_preset_combo.addItems(Playblast.H264_PRESETS)
+
+        h264_layout = QFormLayout()
+        h264_layout.addRow("Quality:", self.h264_quality_combo)
+        h264_layout.addRow("Preset:", self.h264_preset_combo)
+
+        h264_settings_wdg = QGroupBox("h264 Options")
+        h264_settings_wdg.setLayout(h264_layout)
+
+        self.settings_stacked_wdg = QStackedWidget()
+        self.settings_stacked_wdg.addWidget(h264_settings_wdg)
+
+        self.accept_btn = QPushButton("Accept")
+        self.cancel_btn = QPushButton("Cancel")
+
+    def create_layouts(self):
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(self.accept_btn)
+        button_layout.addWidget(self.cancel_btn)
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(2, 2, 2, 2)
+        main_layout.setSpacing(4)
+        main_layout.addWidget(self.settings_stacked_wdg)
+        main_layout.addLayout(button_layout)
+
+    def create_connections(self):
+        self.accept_btn.clicked.connect(self.accept)
+        self.cancel_btn.clicked.connect(self.close)
+
+
+    def set_page(self, page):
+        if not page in PlayblastEncoderSettingsDialog.ENCODER_PAGES:
+            return False
+
+        self.settings_stacked_wdg.setCurrentIndex(PlayblastEncoderSettingsDialog.ENCODER_PAGES[page])
+        return True
+
+    def set_h264_settings(self, quality, preset):
+        self.h264_quality_combo.setCurrentText(quality)
+        self.h264_preset_combo.setCurrentText(preset)
+
+    def get_h264_settings(self):
+        return {
+            "quality": self.h264_quality_combo.currentText(),
+            "preset": self.h264_preset_combo.currentText(),
+        }
+
+
 # 主控件 功能
 class playblastWidget(QWidget):
     
     HUD_LOCATION_RANGE = [0,200]
-    
+
+    CONTAINER_PRESETS = [
+    "mov",
+    "mp4",
+    ]   
+
     collapsed_state_changed = Signal()
 
     def __init__(self, parent=None):
@@ -968,6 +1055,10 @@ class playblastWidget(QWidget):
     def create_widgets(self):
         button_height = 19
         combo_box_min_width = 100
+
+
+        self._settings_dialog = None
+        self._encoder_settings_dialog = None
 
         self.output_path_label = QLabel(u'输出路径')
         self.output_path_tx = QLineEdit()
@@ -1007,6 +1098,16 @@ class playblastWidget(QWidget):
         self.camera_select_cmb.setMinimumWidth(combo_box_min_width)
         self.camera_select_hide_defaults_cb = QCheckBox("Hide defaults")
         self.refresh_cameras()
+
+        self.encoding_container_cmb = QComboBox()
+        self.encoding_container_cmb.setMinimumWidth(combo_box_min_width)
+        self.encoding_container_cmb.addItems(playblastWidget.CONTAINER_PRESETS)
+        self.encoding_container_cmb.setCurrentText(Playblast.DEFAULT_CONTAINER)
+
+        self.encoding_video_codec_cmb = QComboBox()
+        self.encoding_video_codec_cmb.setMinimumWidth(combo_box_min_width)
+        self.encoding_video_codec_settings_btn = QPushButton("Settings...")
+        self.encoding_video_codec_settings_btn.setFixedHeight(button_height)
 
         self.company_tx = QLineEdit()
         self.company_name_X_slider = QSlider()
@@ -1074,6 +1175,15 @@ class playblastWidget(QWidget):
         self.time_range_Y_slider.setRange(playblastWidget.HUD_LOCATION_RANGE[0],playblastWidget.HUD_LOCATION_RANGE[1])
         self.time_range_Y_slider.setOrientation(Qt.Horizontal)
         self.time_range_Y_slider.setObjectName("%s_Y_slider" % self.hud_labels[4])
+
+        self.cam_X_slider = QSlider()
+        self.cam_X_slider.setRange(playblastWidget.HUD_LOCATION_RANGE[0],playblastWidget.HUD_LOCATION_RANGE[1])
+        self.cam_X_slider.setOrientation(Qt.Horizontal)
+        self.cam_X_slider.setObjectName("%s_X_slider" % self.hud_labels[5])
+        self.cam_Y_slider = QSlider()
+        self.cam_Y_slider.setRange(playblastWidget.HUD_LOCATION_RANGE[0],playblastWidget.HUD_LOCATION_RANGE[1])
+        self.cam_Y_slider.setOrientation(Qt.Horizontal)
+        self.cam_Y_slider.setObjectName("%s_Y_slider" % self.hud_labels[5])
 
         self.fps_X_slider = QSlider()
         self.fps_X_slider.setRange(playblastWidget.HUD_LOCATION_RANGE[0],playblastWidget.HUD_LOCATION_RANGE[1])
@@ -1166,10 +1276,18 @@ class playblastWidget(QWidget):
         camera_options_layout.addWidget(self.camera_select_hide_defaults_cb)
         camera_options_layout.addStretch()
 
+        encoding_layout = QHBoxLayout()
+        encoding_layout.setSpacing(2)
+        encoding_layout.addWidget(self.encoding_container_cmb)
+        encoding_layout.addWidget(self.encoding_video_codec_cmb)
+        encoding_layout.addWidget(self.encoding_video_codec_settings_btn)
+        encoding_layout.addStretch()
+
         global_layout = playblastFormLayout()
         # options_layout.setVerticalSpacing(5)
         global_layout.addLayoutRow(0, u"输出尺寸:", resolution_layout)
         global_layout.addLayoutRow(1, "Camera:", camera_options_layout)
+        global_layout.addLayoutRow(2, "Encoding:", encoding_layout)
 
         self.global_GB = QGroupBox(u'全局设置')
         self.global_GB.setStyleSheet("QGroupBox{\n"
@@ -1232,6 +1350,14 @@ class playblastWidget(QWidget):
         time_range_layout.addWidget(self.time_range_Y_slider)
         time_range_layout.addStretch()
 
+        camera_layout = QHBoxLayout()
+        camera_layout.addSpacing(2)
+        camera_layout.addWidget(QLabel("X"))
+        camera_layout.addWidget(self.cam_X_slider)
+        camera_layout.addWidget(QLabel("Y"))
+        camera_layout.addWidget(self.cam_Y_slider)
+        camera_layout.addStretch()
+
         fps_layout = QHBoxLayout()
         fps_layout.addSpacing(2)
         fps_layout.addWidget(QLabel("X"))
@@ -1264,17 +1390,17 @@ class playblastWidget(QWidget):
         date_layout.addWidget(self.date_Y_slider)
         date_layout.addStretch()
 
-
         part_layout = playblastFormLayout()
         part_layout.addLayoutRow(0, u"公司名:", company_layout)
         part_layout.addLayoutRow(1, u"项目名:", proj_name_layout)
         part_layout.addLayoutRow(2, u"文件名:", file_name_layout)
         part_layout.addLayoutRow(3, u"制作者:", author_layout)
         part_layout.addLayoutRow(4, u"帧范围:", time_range_layout)
-        part_layout.addLayoutRow(5, u"帧速率:", fps_layout)
-        part_layout.addLayoutRow(6, u"焦  距:", focal_length_layout)
-        part_layout.addLayoutRow(7, u"当前帧:", frame_layout)
-        part_layout.addLayoutRow(8, u"日  期:", date_layout)
+        part_layout.addLayoutRow(5, u"摄像机:", camera_layout)
+        part_layout.addLayoutRow(6, u"帧速率:", fps_layout)
+        part_layout.addLayoutRow(7, u"焦  距:", focal_length_layout)
+        part_layout.addLayoutRow(8, u"当前帧:", frame_layout)
+        part_layout.addLayoutRow(9, u"日  期:", date_layout)
 
         self.part_GB = QGroupBox(u'局部设置')
         self.part_GB.setStyleSheet("QGroupBox{\n"
@@ -1299,7 +1425,6 @@ class playblastWidget(QWidget):
         self.logging_GBLay.addWidget(self.output_edit)
         self.logging_GBLay.addLayout(logging_button_layout)
 
-
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(6, 6, 6, 6)
         main_layout.setSpacing(4)
@@ -1314,6 +1439,10 @@ class playblastWidget(QWidget):
         
         self.camera_select_cmb.currentTextChanged.connect(self.on_camera_changed)
         self.camera_select_hide_defaults_cb.toggled.connect(self.refresh_cameras)
+
+        self.encoding_container_cmb.currentTextChanged.connect(self.refresh_video_encoders)
+        self.encoding_video_codec_cmb.currentTextChanged.connect(self.on_video_encoder_changed)
+        self.encoding_video_codec_settings_btn.clicked.connect(self.show_encoder_settings_dialog)
 
         self.resolution_select_cmb.currentTextChanged.connect(self.refresh_resolution)
         self.resolution_width_sb.editingFinished.connect(self.on_resolution_changed)
@@ -1340,7 +1469,10 @@ class playblastWidget(QWidget):
 
         self.time_range_X_slider.valueChanged.connect(partial(self.update_mask_loaction,self.hud_labels[4],"x"))
         self.time_range_Y_slider.valueChanged.connect(partial(self.update_mask_loaction,self.hud_labels[4],"y"))
-        
+
+        self.cam_X_slider.valueChanged.connect(partial(self.update_mask_loaction,self.hud_labels[5],"x"))
+        self.cam_Y_slider.valueChanged.connect(partial(self.update_mask_loaction,self.hud_labels[5],"y"))
+
         self.fps_X_slider.valueChanged.connect(partial(self.update_mask_loaction,self.hud_labels[7],"x"))
         self.fps_Y_slider.valueChanged.connect(partial(self.update_mask_loaction,self.hud_labels[7],"y"))
 
@@ -1391,11 +1523,14 @@ class playblastWidget(QWidget):
             current_dir_path = self._playblast.get_project_dir_path()
 
         new_dir_path = QFileDialog.getExistingDirectory(self, "Select Directory", current_dir_path)
+
+        suffix_name = self.encoding_container_cmb.currentText()
+
         if new_dir_path:
             if cmds.file(q=True,sn=True,shn=True):
-                self.output_path_tx.setText("%s/%s.mp4" % (new_dir_path, 
+                self.output_path_tx.setText("%s/%s.%s" % (new_dir_path, 
                                                         (os.path.splitext(
-                                                            os.path.basename(cmds.file(q=True,sn=True))))[0]))
+                                                            os.path.basename(cmds.file(q=True,sn=True))))[0],suffix_name))
             else:
                 cmds.confirmDialog( t=u'警告', m=u'请先保存文件!!',icn='warning', b=['Yes'], db='Yes', ds='No' )
 
@@ -1404,7 +1539,10 @@ class playblastWidget(QWidget):
         if not current_dir_path:
             current_dir_path = self.output_path_tx.placeholderText()
 
-        new_dir_path = "%s.mp4"% os.path.splitext(cmds.file(q=True,sn=True))[0]
+        suffix_name = self.encoding_container_cmb.currentText()
+
+
+        new_dir_path = "%s.%s"% (os.path.splitext(cmds.file(q=True,sn=True))[0],suffix_name)
         if cmds.file(q=True,sn=True,shn=True):
             self.output_path_tx.setText(new_dir_path)
         else:
@@ -1414,15 +1552,18 @@ class playblastWidget(QWidget):
         self.refresh_cameras()
         self.refresh_resolution()
         self.refresh_frame_range()
+        self.refresh_video_encoders()
 
     def refresh_cameras(self):
         current_camera = self.camera_select_cmb.currentText()
+        self._playblast.set_camera(current_camera)
         self.camera_select_cmb.clear()
 
         self.camera_select_cmb.addItem("<Active>")
         self.camera_select_cmb.addItems(PlayblastUtils.cameras_in_scene(self.camera_select_hide_defaults_cb.isChecked(), True))
 
         self.camera_select_cmb.setCurrentText(current_camera)
+        
 
     def on_camera_changed(self):
         camera = self.camera_select_cmb.currentText()
@@ -1495,22 +1636,60 @@ class playblastWidget(QWidget):
 
         self._playblast.set_frame_range(frame_range)
 
+    def refresh_video_encoders(self):
+        self.encoding_video_codec_cmb.clear()
+
+        container = self.encoding_container_cmb.currentText()
+        self.encoding_video_codec_cmb.addItems(Playblast.VIDEO_ENCODER_LOOKUP[container])
+
+    def on_video_encoder_changed(self):
+        container = self.encoding_container_cmb.currentText()
+        encoder = self.encoding_video_codec_cmb.currentText()
+
+        if container and encoder:
+            self._playblast.set_encoding(container, encoder)
+
+    def show_encoder_settings_dialog(self):
+        if not self._encoder_settings_dialog:
+            self._encoder_settings_dialog = PlayblastEncoderSettingsDialog(self)
+            self._encoder_settings_dialog.accepted.connect(self.on_encoder_settings_dialog_modified)
+
+        else:
+            encoder = self.encoding_video_codec_cmb.currentText()
+            if encoder == "h264":
+                self._encoder_settings_dialog.set_page("h264")
+
+                h264_settings = self._playblast.get_h264_settings()
+                self._encoder_settings_dialog.set_h264_settings(h264_settings["quality"], h264_settings["preset"])
+            else:
+                self.append_output("[ERROR] Settings page not found for encoder: {0}".format(encoder))
+
+        self._encoder_settings_dialog.show()
+
+    def on_encoder_settings_dialog_modified(self):
+
+        encoder = self.encoding_video_codec_cmb.currentText()
+        if encoder == "h264":
+            h264_settings = self._encoder_settings_dialog.get_h264_settings()
+            self._playblast.set_h264_settings(h264_settings["quality"], h264_settings["preset"])
+        else:
+            self.append_output("[ERROR] Failed to set encoder settings. Unknown encoder: {0}".format(encoder))
+
     def on_log_to_script_editor_changed(self):
         self._playblast.set_maya_logging_enabled(self.log_to_script_editor_cb.isChecked())
 
     def update_cam_fl(self,camera):
-        if not camera:
-            return
-        cam_shape = cmds.ls(camera,dag=True,s=True)[0]
-        fl_pre_text = u"焦距"
-        if cmds.objExists("focal_length_hud_exp"):
-            cmds.delete("focal_length_hud_exp")
-        else:
-            fl_exp = (('\"string $fl_v = `getAttr \"%s.focalLength\"`;\n' % cam_shape)+
-                    'string $fl_p = `python(\"\'%.2f\' % \"+$fl_v)`;\n' +
-                    ('setAttr -type \"string\" \"focal_length_hud.text\" (\"%s:\" + $fl_p);\"' % fl_pre_text))
-            
-            cmds.expression(o="",n="focal_length_hud_exp",ae=1,uc=all,s=fl_exp)
+        if camera:
+            cam_shape = cmds.ls(camera,dag=True,s=True)[0]
+            fl_pre_text = u"焦距"
+            if cmds.objExists("focal_length_hud_exp"):
+                cmds.delete("focal_length_hud_exp")
+            else:
+                fl_exp = (('\"string $fl_v = `getAttr \"%s.focalLength\"`;\n' % cam_shape)+
+                        'string $fl_p = `python(\"\'%.2f\' % \"+$fl_v)`;\n' +
+                        ('setAttr -type \"string\" \"focal_length_hud.text\" (\"%s:\" + $fl_p);\"' % fl_pre_text))
+                
+                cmds.expression(o="",n="focal_length_hud_exp",ae=1,uc=all,s=fl_exp)
 
     def update_mask_loaction(self,hud_name,axial,slider_value):
         if not cmds.objExists('ddhud_grp'):
@@ -1555,10 +1734,13 @@ class playblastWidget(QWidget):
         hud_data = []
         if cmds.objExists('ddhud_grp'):
             for hud in PlayblastCustomPresets.HUD_MASKS_LABELS:
-                tx_le = ["text",cmds.getAttr(("%s_hud.text" % hud)).encode("utf-8")]
+                fontScale_le = ["fontScale","%.2f"%cmds.getAttr(("%s_hud.fontScale" % hud))]
                 x_le = ["x","%.2f"%cmds.getAttr(("%s_hud.x" % hud))]
                 y_le = ["y","%.2f"%cmds.getAttr(("%s_hud.y" % hud))]
-                fontScale_le = ["fontScale","%.2f"%cmds.getAttr(("%s_hud.fontScale" % hud))]
+                if hud is "fps":
+                    tx_le = ["text","帧速率"]
+                else:
+                    tx_le = ["text",cmds.getAttr(("%s_hud.text" % hud)).encode("utf-8")]
                 hud_data.append([hud,[tx_le,x_le,y_le,fontScale_le]])
 
         dict_ddhud = dict(hud_data)
@@ -1689,7 +1871,7 @@ class PlayblastUI(QWidget):
         if self.workspace_control_instance.exists():
             self.workspace_control_instance.restore(self)
         else:
-            self.workspace_control_instance.create(self.WINDOW_TITLE, self, ui_script="from playblast_ui import PlayblastUI\nPlayblastUI.display()")
+            self.workspace_control_instance.create(self.WINDOW_TITLE, self, ui_script="from playblast import PlayblastUI\nPlayblastUI.display()")
 
     def on_collapsed_state_changed(self):
         cmds.optionVar(iv=[PlayblastUI.OPT_VAR_GROUP_STATE, self.playblast_wdg.get_collapsed_states()])
